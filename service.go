@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
+	"strconv"
 	"time"
 )
 
@@ -35,7 +37,14 @@ func (s *service) Send(id string, req *Request) (*Response, error) {
 		Status:  cliResp.Status,
 		Headers: cliResp.Header,
 	}
-	cliResp.Body.Read(resp.Body)
+	l := cliResp.Header.Get("Content-Length")
+	if l != "" {
+		n, err := strconv.Atoi(l)
+		if err == nil {
+			resp.Length = n
+		}
+	}
+	resp.Body, _ = ioutil.ReadAll(cliResp.Body)
 	if err = s.db.Add(req, &resp); err != nil {
 		return nil, fmt.Errorf("db: %w", err)
 	}
